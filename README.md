@@ -56,4 +56,5 @@ Claude **데스크톱 앱**만 쓰고 있다면 이 파일이 비어 있으므�
 
 ## 라이선스
 
+- 코드: [MIT](LICENSE)
 - 폰트: [Pretendard](https://github.com/orioncactus/pretendard) — SIL Open Font License 1.1 ([Fonts/LICENSE](Fonts/LICENSE))
