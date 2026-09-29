@@ -20,6 +20,10 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Fonts\*.ttf" />
+    <!-- tools/ holds separate projects; keep their sources out of the app. -->
+    <Compile Remove="tools\**" />
+    <None Remove="tools\**" />
+    <EmbeddedResource Remove="tools\**" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Renders the widget offscreen to PNG with the app's own WidgetRenderer.
+       Used to check UI changes and to regenerate docs/*.png. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>ClaudeUsageWidget</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\WidgetRenderer.cs" Link="WidgetRenderer.cs" />
+    <EmbeddedResource Include="..\..\Fonts\Pretendard-Regular.ttf" LogicalName="ClaudeUsageWidget.Fonts.Pretendard-Regular.ttf" />
+    <EmbeddedResource Include="..\..\Fonts\Pretendard-Bold.ttf" LogicalName="ClaudeUsageWidget.Fonts.Pretendard-Bold.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="4.153.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="4.153.0" />
+  </ItemGroup>
+
+</Project>
