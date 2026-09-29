@@ -4,6 +4,15 @@ Claude Code 남은 사용량(5시간 세션 · 주간 한도)을 바탕화면 �
 
 > **비공식 프로젝트입니다.** Anthropic과 무관한 개인 프로젝트이며, Anthropic이 보증하거나 지원하지 않습니다.
 
+<p>
+  <img src="docs/widget.png" alt="위젯" width="280">
+  <img src="docs/settings.png" alt="설정 화면" width="280">
+</p>
+
+간단히 보기:
+
+<img src="docs/compact.png" alt="간단히 보기" width="230">
+
 ## 기능
 
 - **바탕화면 위젯**: 5시간 세션 / 주간(모델별 한도가 있으면 Opus · Sonnet 포함) 남은 %, 진행 막대, 리셋 시각
