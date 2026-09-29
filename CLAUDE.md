@@ -1,6 +1,6 @@
 # claude-usage-widget
 
-Claude Code 남은 사용량을 보여주는 Windows 11 바탕화면 위젯 + 트레이 앱. WPF(.NET 10) + SkiaSharp. 비공식 프로젝트.
+Claude Code 사용량(사용한 %, Claude 사용량 페이지와 같은 기준)을 보여주는 Windows 11 바탕화면 위젯 + 트레이 앱. WPF(.NET 10) + SkiaSharp. 비공식 프로젝트.
 
 ## 구조
 
@@ -13,6 +13,7 @@ Claude Code 남은 사용량을 보여주는 Windows 11 바탕화면 위젯 + �
 | `CliAuth.cs` | `claude auth status`(토큰 갱신), `claude auth login`(로그인)을 창 없이 실행 |
 | `TrayIcon.cs` | WinForms `NotifyIcon`, 메뉴, Skia로 그린 % 아이콘 |
 | `AppSettings.cs` | `%APPDATA%\ClaudeUsageWidget\settings.json` |
+| `WindowPosition.cs` | 창 위치를 모니터 장치명 + 작업 영역 기준 물리 픽셀 오프셋으로 저장·복원 (DPI가 다른 보조 모니터 대응) |
 | `StartupHelper.cs` | `HKCU\...\Run` 자동 시작 |
 | `tools/RenderPreview` | 앱의 `WidgetRenderer`로 PNG를 뽑는 별도 콘솔 프로젝트 |
 
@@ -24,7 +25,7 @@ UI는 XAML 컨트롤이 아니라 `WidgetRenderer`가 전부 그린다. 버튼 �
 - 토큰 원천은 `~/.claude/.credentials.json`(`CLAUDE_CONFIG_DIR` 우선)뿐이다. Claude 데스크톱 앱은 여기에 토큰을 쓰지 않으므로 사용자는 CLI 로그인이 따로 필요하다. 데스크톱 앱 내부 저장소에서 토큰을 꺼내는 방식은 쓰지 않는다.
 - 토큰은 로그·설정 파일·출력 어디에도 남기지 않는다. 확인이 필요하면 길이만 본다.
 - 사용량 API(`GET https://api.anthropic.com/api/oauth/usage`, 헤더 `anthropic-beta: oauth-2025-04-20`)는 공개 문서가 없고 요청 제한이 엄격하다. 갱신 주기 최소 3분, 429 응답이면 `Retry-After`만큼 기다린다. 테스트할 때도 반복 호출하지 말 것.
-- 응답 필드: `five_hour`, `seven_day`, `seven_day_opus`, `seven_day_sonnet` → `{ utilization(0–100, 사용한 %), resets_at }`. 남은 % = 100 − utilization.
+- 응답 필드: `five_hour`, `seven_day`, `seven_day_opus`, `seven_day_sonnet` → `{ utilization(0–100, 사용한 %), resets_at }`. 화면에는 utilization(사용한 %)을 그대로 표시한다(초록 <50, 주황 <80, 빨강).
 
 ## 빌드 · 실행
 

@@ -28,6 +28,8 @@ public partial class App : Application
         var window = new MainWindow(settings);
         _tray = new TrayIcon(window, settings);
         window.Updated += _tray.Update;
+        // Windows sign-out/shutdown ends the app without going through the tray menu.
+        SessionEnding += (_, _) => window.SavePosition();
 
         if (settings.Visible)
             window.Show();

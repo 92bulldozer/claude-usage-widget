@@ -10,7 +10,7 @@ namespace ClaudeUsageWidget;
 
 public sealed record UsageWindow(double Utilization, DateTimeOffset? ResetsAt)
 {
-    public double Remaining => Math.Clamp(100 - Utilization, 0, 100);
+    public double Used => Math.Clamp(Utilization, 0, 100);
 }
 
 public sealed class UsageSnapshot

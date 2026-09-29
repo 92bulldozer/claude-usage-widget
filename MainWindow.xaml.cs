@@ -22,6 +22,8 @@ public partial class MainWindow : Window
     private readonly UsageService _service = new();
     private readonly DispatcherTimer _pollTimer = new();
     private readonly DispatcherTimer _credentialsDebounce = new() { Interval = TimeSpan.FromSeconds(2) };
+    // Fires once the widget has been left alone for a while; see TrimMemory.
+    private readonly DispatcherTimer _idleTrim = new() { Interval = TimeSpan.FromSeconds(10) };
     private FileSystemWatcher? _credentialsWatcher;
     private bool _fetching;
     private DateTimeOffset _lastFetchAt = DateTimeOffset.MinValue;
@@ -60,7 +62,17 @@ public partial class MainWindow : Window
         }
 
         _pollTimer.Tick += async (_, _) => await RefreshAsync();
-        SourceInitialized += (_, _) => HideFromAltTab();
+        _idleTrim.Tick += (_, _) =>
+        {
+            _idleTrim.Stop();
+            TrimMemory();
+        };
+        SourceInitialized += (_, _) =>
+        {
+            HideFromAltTab();
+            if (_settings.Position is { } pos)
+                WindowPosition.Restore(new WindowInteropHelper(this).Handle, pos);
+        };
         // Nothing is painted while hidden; catch up when shown again.
         IsVisibleChanged += (_, _) => { if (IsVisible) Render(); };
         Render();
@@ -169,7 +181,7 @@ public partial class MainWindow : Window
         if (Snapshot is { } s)
         {
             bool compact = _settings.Compact;
-            AddRow(rows, compact ? "5시간" : "5시간 세션", s.FiveHour, RowIcon.Clock);
+            AddRow(rows, compact ? "세션" : "현재 세션", s.FiveHour, RowIcon.Clock);
             AddRow(rows, "주간", s.SevenDay, RowIcon.Calendar);
             AddRow(rows, compact ? "Opus" : "주간 Opus", s.SevenDayOpus, RowIcon.Calendar);
             AddRow(rows, compact ? "Sonnet" : "주간 Sonnet", s.SevenDaySonnet, RowIcon.Calendar);
@@ -200,6 +212,10 @@ public partial class MainWindow : Window
         }
         Height = Math.Ceiling(WidgetRenderer.Draw(null, _state, _hits));
         if (IsVisible) Paint();
+
+        // Every repaint/fetch passes through here: restart the idle countdown.
+        _idleTrim.Stop();
+        _idleTrim.Start();
     }
 
     protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
@@ -272,8 +288,18 @@ public partial class MainWindow : Window
 
         if (_settings.Locked) return;
         DragMove();
+        SavePosition();
+    }
+
+    /// <summary>Remembers the current monitor and position for the next launch.</summary>
+    public void SavePosition()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        // Never shown this session (started hidden): keep what was saved last time.
+        if (hwnd == IntPtr.Zero) return;
         _settings.Left = Left;
         _settings.Top = Top;
+        _settings.Position = WindowPosition.Capture(hwnd) ?? _settings.Position;
         _settings.Save();
     }
 
@@ -330,8 +356,7 @@ public partial class MainWindow : Window
         _hover = null;
         Cursor = null;
         Render();
-        _settings.Left = Left;
-        _settings.Top = Top;
+        SavePosition();
         _settings.Save();
     }
 
@@ -372,7 +397,7 @@ public partial class MainWindow : Window
     private static void AddRow(List<UsageRow> rows, string label, UsageWindow? w, RowIcon icon)
     {
         if (w is null) return;
-        rows.Add(new UsageRow(label, w.Remaining, FormatReset(w.ResetsAt, weekly: icon == RowIcon.Calendar), icon));
+        rows.Add(new UsageRow(label, w.Used, FormatReset(w.ResetsAt, weekly: icon == RowIcon.Calendar), icon));
     }
 
     private static string FormatReset(DateTimeOffset? resetsAt, bool weekly)
@@ -400,5 +425,23 @@ public partial class MainWindow : Window
     {
         var hwnd = new WindowInteropHelper(this).Handle;
         SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_TOOLWINDOW);
+    }
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+
+    [DllImport("kernel32.dll")]
+    private static extern bool SetProcessWorkingSetSize(IntPtr process, nint min, nint max);
+
+    /// <summary>
+    /// The widget idles between polls: compact the managed heap and hand resident
+    /// pages back to Windows (what Task Manager shows drops sharply). Pages the next
+    /// repaint needs fault back in from the standby list, which is cheap.
+    /// </summary>
+    private static void TrimMemory()
+    {
+        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+        GC.WaitForPendingFinalizers();
+        SetProcessWorkingSetSize(GetCurrentProcess(), -1, -1);
     }
 }

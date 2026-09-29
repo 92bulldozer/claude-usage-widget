@@ -8,7 +8,7 @@ using SkiaSharp;
 namespace ClaudeUsageWidget;
 
 /// <summary>
-/// System tray (notification area) icon. The icon itself shows the remaining
+/// System tray (notification area) icon. The icon itself shows the used
 /// 5-hour percentage; left-click toggles the widget, right-click opens the menu.
 /// </summary>
 public sealed class TrayIcon : IDisposable
@@ -58,7 +58,11 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add(_topmostItem);
         menu.Items.Add(_startupItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("종료", null, (_, _) => System.Windows.Application.Current.Shutdown());
+        menu.Items.Add("종료", null, (_, _) =>
+        {
+            _window.SavePosition();
+            System.Windows.Application.Current.Shutdown();
+        });
 
         _icon = new NotifyIcon { ContextMenuStrip = menu };
         _icon.MouseClick += (_, e) =>
@@ -86,21 +90,21 @@ public sealed class TrayIcon : IDisposable
     {
         var s = _window.Snapshot;
         var tip = new StringBuilder("Claude Code 사용량");
-        if (s?.FiveHour is { } five) tip.Append($"\n5시간: {Math.Round(five.Remaining)}% 남음");
-        if (s?.SevenDay is { } week) tip.Append($"\n주간: {Math.Round(week.Remaining)}% 남음");
+        if (s?.FiveHour is { } five) tip.Append($"\n세션: {Math.Round(five.Used)}% 사용");
+        if (s?.SevenDay is { } week) tip.Append($"\n주간: {Math.Round(week.Used)}% 사용");
         if (_window.LastError is { } err) tip.Append($"\n{err}");
         var text = tip.ToString();
         _icon.Text = text.Length > 127 ? text[..127] : text;
 
-        SetIcon(s?.FiveHour?.Remaining);
+        SetIcon(s?.FiveHour?.Used);
     }
 
     private void ToggleWidget() => _window.SetWidgetVisible(!_window.IsVisible);
 
-    private void SetIcon(double? remaining)
+    private void SetIcon(double? used)
     {
         // Re-encoding the icon is the priciest thing a poll does; skip it when unchanged.
-        var key = remaining is { } k ? Math.Round(k).ToString() : "?";
+        var key = used is { } k ? Math.Round(k).ToString() : "?";
         if (key == _iconKey) return;
         _iconKey = key;
 
@@ -110,14 +114,14 @@ public sealed class TrayIcon : IDisposable
         canvas.Clear(SKColors.Transparent);
 
         using var paint = new SKPaint { IsAntialias = true };
-        paint.Color = remaining is null
+        paint.Color = used is null
             ? new SKColor(0x70, 0x70, 0x78)
-            : remaining > 50 ? new SKColor(0x3F, 0xA8, 0x62)
-            : remaining > 20 ? new SKColor(0xD8, 0x96, 0x1E)
+            : used < 50 ? new SKColor(0x3F, 0xA8, 0x62)
+            : used < 80 ? new SKColor(0xD8, 0x96, 0x1E)
             : new SKColor(0xD6, 0x45, 0x3A);
         canvas.DrawRoundRect(new SKRect(0, 0, size, size), 7, 7, paint);
 
-        var label = remaining is { } r ? Math.Round(r).ToString() : "?";
+        var label = used is { } r ? Math.Round(r).ToString() : "?";
         using var typeface = SKTypeface.FromFamilyName("Segoe UI", SKFontStyle.Bold);
         using var font = new SKFont(typeface, label.Length >= 3 ? 13f : 19f) { Edging = SKFontEdging.Antialias };
         font.MeasureText(label, out var bounds);

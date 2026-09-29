@@ -6,7 +6,7 @@ namespace ClaudeUsageWidget;
 
 public enum RowIcon { Clock, Calendar }
 
-public sealed record UsageRow(string Label, double Remaining, string ResetText, RowIcon Icon);
+public sealed record UsageRow(string Label, double Used, string ResetText, RowIcon Icon);
 
 public enum WidgetPage { Usage, Settings }
 
@@ -106,9 +106,9 @@ public static class WidgetRenderer
             ?? SKTypeface.Default;
     }
 
-    private static Tone ToneFor(double remaining) => remaining > 50 ? GreenTone : remaining > 20 ? AmberTone : RedTone;
+    private static Tone ToneFor(double used) => used < 50 ? GreenTone : used < 80 ? AmberTone : RedTone;
 
-    public static SKColor ColorFor(double remaining) => ToneFor(remaining).Base;
+    public static SKColor ColorFor(double used) => ToneFor(used).Base;
 
     private static readonly Dictionary<(SKTypeface, float), SKFont> FontCache = new();
 
@@ -187,19 +187,19 @@ public static class WidgetRenderer
         float y = cardY + 8;
         foreach (var row in state.Rows)
         {
-            var tone = ToneFor(row.Remaining);
+            var tone = ToneFor(row.Used);
             float baseline = y + CompactRowHeight / 2 + 4;
 
             paint.Color = TextMuted;
             canvas.DrawText(row.Label, cardX + 10, baseline, SKTextAlign.Left, labelFont, paint);
 
             paint.Color = tone.Base;
-            canvas.DrawText($"{Math.Round(row.Remaining)}%", contentRight, baseline, SKTextAlign.Right, valueFont, paint);
+            canvas.DrawText($"{Math.Round(row.Used)}%", contentRight, baseline, SKTextAlign.Right, valueFont, paint);
 
             var track = new SKRect(cardX + 10 + 42, y + CompactRowHeight / 2 - 2.5f, contentRight - 38, y + CompactRowHeight / 2 + 2.5f);
             paint.Color = new SKColor(0x29, 0x2D, 0x32);
             canvas.DrawRoundRect(track, 2.5f, 2.5f, paint);
-            float fillW = (float)(track.Width * Math.Clamp(row.Remaining, 0, 100) / 100);
+            float fillW = (float)(track.Width * Math.Clamp(row.Used, 0, 100) / 100);
             if (fillW > 0)
             {
                 var fill = new SKRect(track.Left, track.Top, track.Left + Math.Max(fillW, track.Height), track.Bottom);
@@ -613,7 +613,7 @@ public static class WidgetRenderer
 
     private static void DrawRow(SKCanvas canvas, SKRect r, UsageRow row)
     {
-        var tone = ToneFor(row.Remaining);
+        var tone = ToneFor(row.Used);
         using var paint = new SKPaint { IsAntialias = true };
 
         // Row panel
@@ -648,7 +648,7 @@ public static class WidgetRenderer
         float right = r.Right - 10;
         float baseline = r.Top + 21;
 
-        // Label + short reset time ("5시간 세션  리셋 18:50")
+        // Label + short reset time ("현재 세션  리셋 18:50")
         var labelFont = Font(Bold, 12.5f);
         var resetFont = Font(Regular, 10.5f);
         paint.Color = TextPrimary;
@@ -659,7 +659,7 @@ public static class WidgetRenderer
         // "91%", right aligned on the label baseline
         var numberFont = Font(Bold, 18);
         var percentFont = Font(Bold, 11);
-        string number = Math.Round(row.Remaining).ToString();
+        string number = Math.Round(row.Used).ToString();
 
         paint.Color = tone.Base;
         canvas.DrawText("%", right, baseline, SKTextAlign.Right, percentFont, paint);
@@ -669,6 +669,9 @@ public static class WidgetRenderer
             new[] { tone.Light, tone.Base }, SKShaderTileMode.Clamp);
         canvas.DrawText(number, numberRight, baseline, SKTextAlign.Right, numberFont, paint);
         paint.Shader = null;
+        // Same wording as Claude's own usage page, so the number isn't read as "left".
+        paint.Color = TextDim;
+        canvas.DrawText("사용", numberRight - numberFont.MeasureText(number) - 4, baseline, SKTextAlign.Right, resetFont, paint);
 
         // Progress bar
         var track = new SKRect(textX, r.Top + 29, right, r.Top + 29 + BarHeight);
@@ -676,7 +679,7 @@ public static class WidgetRenderer
         paint.Color = new SKColor(0x29, 0x2D, 0x32);
         canvas.DrawRoundRect(track, radius, radius, paint);
 
-        float fillW = (float)(track.Width * Math.Clamp(row.Remaining, 0, 100) / 100);
+        float fillW = (float)(track.Width * Math.Clamp(row.Used, 0, 100) / 100);
         if (fillW > 0)
         {
             var fill = new SKRect(track.Left, track.Top, track.Left + Math.Max(fillW, BarHeight), track.Bottom);

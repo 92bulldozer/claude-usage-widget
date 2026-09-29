@@ -12,6 +12,7 @@ public sealed class AppSettings
 
     public double? Left { get; set; }
     public double? Top { get; set; }
+    public WindowPosition.Saved? Position { get; set; }
     public bool Topmost { get; set; }
     public bool Locked { get; set; }
     public bool Compact { get; set; }

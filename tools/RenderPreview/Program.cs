@@ -11,13 +11,13 @@ Directory.CreateDirectory(outDir);
 
 var full = new List<UsageRow>
 {
-    new("5시간 세션", 72, "리셋 18:50", RowIcon.Clock),
-    new("주간", 34, "리셋 10/2(목)", RowIcon.Calendar),
+    new("현재 세션", 28, "리셋 18:50", RowIcon.Clock),
+    new("주간", 66, "리셋 10/2(목)", RowIcon.Calendar),
 };
 var compact = new List<UsageRow>
 {
-    new("5시간", 72, "", RowIcon.Clock),
-    new("주간", 34, "", RowIcon.Calendar),
+    new("세션", 28, "", RowIcon.Clock),
+    new("주간", 66, "", RowIcon.Calendar),
 };
 
 Render(new WidgetState { Page = WidgetPage.Usage, Rows = full }, "widget.png");
